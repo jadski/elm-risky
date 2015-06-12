@@ -1,7 +1,7 @@
 Elm.Native = Elm.Native || {};
-Elm.Native.Map = {};
-Elm.Native.Map.Svg = {};
-Elm.Native.Map.Svg.Events = {};
+Elm.Native.Map = Elm.Native.Map || {};
+Elm.Native.Map.Svg = Elm.Native.Map.Svg || {};
+Elm.Native.Map.Svg.Events = Elm.Native.Map.Svg.Events || {};
 Elm.Native.Map.Svg.Events.make = function(localRuntime) {
 
 	localRuntime.Native = localRuntime.Native || {};
