@@ -42,4 +42,4 @@ onMouseOver =
 
 onMouseOut : (EventInfo -> Signal.Message) -> Attribute
 onMouseOut =
-    messageOn "mouseover"
+    messageOn "mouseout"
