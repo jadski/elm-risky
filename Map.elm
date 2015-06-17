@@ -1,37 +1,19 @@
 module Map ( .. ) where
 
 import Native.Map
-import Dict
+
 import Debug
 import String
-import Maybe
-import String exposing ( .. )
-import Html
 import Html exposing ( div, p, text, toElement )
-import Html.Attributes exposing ( .. )
-import Json.Encode
-import Json.Decode
-import Mouse
-import Text
-import Svg
+import Html.Attributes exposing ( attribute, class, name )
+import Svg exposing ( Svg, svg, g, defs, style, path, rect, set, animate, animateTransform )
 import Svg.Attributes
-import Svg.Events
-import Svg exposing ( svg, g, defs, style, path, rect, set, animate, animateTransform )
 import Graphics.Element exposing ( .. )
-import Graphics.Element
-import Graphics.Input
-import Graphics.Collage as Collage
 import Signal exposing ( .. )
-import Time
-import List
+import Map.Svg
 import Map.Svg.Events exposing ( EventInfo )
 import Map.Svg.Events as MapEvents
 import Map.World
-
-type Mouse = Over EventInfo | Out EventInfo
-
-emptyInfo = MapEvents.empty
-emptyMouse = Out emptyInfo
 {-
 
   This version implements the map using standard svg path nodes.
@@ -42,22 +24,95 @@ emptyMouse = Out emptyInfo
 
 -}
 
-activate : String -> Int
-activate =
-    Native.Map.activate
 
+{-
+
+  Switches on mouse over and out hovering animations.
+
+  Hover is implemented by by setting animation element(s) href's to point at the currently hovering element.
+
+  Eg. hoverEnable "elementClass" "animationId"
+
+  elementClass : css class descriptor of all elements to be monitored
+  animationId  : animation element whose href should be updated on mouseover to the current element
+                 This can be an svg group <g> element in order to use multiple effects
+
+-}
+hoverEnable : String -> String -> Int
+hoverEnable elementClass animationClass =
+    Native.Map.hoverEnable elementClass animationClass
+
+{-
+
+  Switches off mouse over and out animations.
+
+  Eg. hoverDisable elementClass
+
+  elementClass : css class descriptor of all elements to be monitored
+
+-}
+hoverDisable : String -> Int
+hoverDisable =
+    Native.Map.hoverDisable
+
+-- MODEL
+type Mouse = Over EventInfo | Out EventInfo
+
+--type alias Node = ( List Svg -> Svg )
+type alias Node = Svg
+
+type alias Model = { title         : String
+                   , mouseOver     : String
+                   , mouse         : Mouse
+                   , animationsOut : List String
+                   , lookup        : List ( String, Node )
+                   , renderings    : Int
+                   }
+
+emptyInfo = MapEvents.empty
+emptyMouse = Out emptyInfo
+
+default : Model
+default = { title         = "no oink"
+          , mouseOver     = ""
+          , mouse         = emptyMouse
+          , animationsOut = []
+          , lookup        = svgPaths
+          , renderings    = 0
+          }
+
+mouseMailbox : Signal.Mailbox ( Mouse )
+mouseMailbox = Signal.mailbox ( emptyMouse )
+mouseAddress = mouseMailbox.address
+mouseSignal  = mouseMailbox.signal
+
+node : Map.World.Record -> Node
+node record =
+    path [ Svg.svgNamespace
+         , Svg.Attributes.id     record.id
+         , Svg.Attributes.title  record.title
+         , Svg.Attributes.class  "land-class"
+         , Svg.Attributes.d      record.d
+         , Svg.Attributes.fill   "#c99"
+         , MapEvents.onMouseOver makeMessageOver
+         , MapEvents.onMouseOut  makeMessageOut
+         , attribute "xmlns:xlink" "http://www.w3.org/1999/xlink"
+         ] []
+
+-- UPDATE
 -- SVG
-makeSvgPathNode : Map.World.Record -> Svg.Svg
-makeSvgPathNode record = path [ Svg.svgNamespace
-                              , Svg.Attributes.id     record.id
-                              , Svg.Attributes.title  record.title
-                              , Svg.Attributes.class  record.class
-                              , Svg.Attributes.d      record.d
-                              , Svg.Attributes.fill   "#c77"
-                              , MapEvents.onMouseOver makeMessageOver
-                              , MapEvents.onMouseOut  makeMessageOut
-                              , attribute "xmlns:xlink" "http://www.w3.org/1999/xlink"
-                              ] []
+mapId : String
+mapId =
+    "map-root"
+
+svgPath : Map.World.Record -> ( String, Node )
+svgPath record = ( record.id, node record )
+
+svgPaths =
+    List.map svgPath Map.World.records
+
+svgNodes =
+    List.map node Map.World.records
 
 makeMessageOver : EventInfo -> Signal.Message
 makeMessageOver xxxx =
@@ -67,22 +122,8 @@ makeMessageOut : EventInfo -> Signal.Message
 makeMessageOut xxxx =
     Signal.message mouseAddress ( Out xxxx )
 
-svgPaths =
-    List.map makeSvgPathNode Map.World.records
-
--- MODEL
-type alias Model = { title         : String
-                   , mouseOver     : String
-                   , mouse         : Mouse
-                   , animationsOut : List String
-                   }
-
-initialModel : Model
-initialModel = { title         = "no oink"
-               , mouseOver     = ""
-               , mouse         = emptyMouse
-               , animationsOut = []
-               }
+duration = "300ms"
+scale = 1.2
 
 centre model =
     case model.mouse of
@@ -90,9 +131,6 @@ centre model =
                    in
                      ( ( ords.x + ( ords.w / 2 ) ),
                        ( ords.y + ( ords.h / 2 ) ) )
-
-duration = "300ms"
-scale = 1.2
 
 translateMax ( x, y ) =
     ( x * ( scale - 1 ), y * ( scale - 1 ) )
@@ -103,44 +141,47 @@ negate ( x, y ) =
 string ords
     = ( toString ( fst ords ) ) ++ "," ++ ( toString ( snd ords ) )
 
-viewAnimations model =
-    if | String.isEmpty model.mouseOver -> []
-       | otherwise -> 
-           let id = "#" ++ model.mouseOver
-               midpoint = negate ( centre model )
-               ignore = activate model.mouseOver
-           in
-             [ set     [ Svg.svgNamespace
-                       , attribute                     "xmlns:xlink" "http://www.w3.org/1999/xlink"
-                       , Svg.Attributes.xlinkHref      id
-                       , Svg.Attributes.attributeType  "XML"
-                       , Svg.Attributes.attributeName  "stroke"
-                       , Svg.Attributes.to             "#822"
-                       , Svg.Attributes.begin          "0s"
-                       , Svg.Attributes.dur            duration
-                       , Svg.Attributes.repeatCount    "indefinite" ][]
+hoverAnimations =
+    g [ Svg.svgNamespace
+      , attribute                     "xmlns:xlink" "http://www.w3.org/1999/xlink"
+      , Svg.Attributes.id             "land-hover-animation-id"
+      , Svg.Attributes.xlinkHref      ""
+      , Svg.Attributes.attributeType  "XML"
+      ]
+    [ set     [ Svg.svgNamespace
+              , Svg.Attributes.class          "land-hover-class"
+              , attribute                     "xmlns:xlink" "http://www.w3.org/1999/xlink"
+              , Svg.Attributes.attributeType  "XML"
+              , Svg.Attributes.attributeName  "stroke"
+              , Svg.Attributes.to             "#822"
+              , Svg.Attributes.begin          "0s"
+              , Svg.Attributes.dur            duration
+              , Svg.Attributes.repeatCount    "indefinite"
+              ][]
+    , animate [ Svg.svgNamespace
+              , Svg.Attributes.class          "land-hover-class"
+              , attribute                     "xmlns:xlink" "http://www.w3.org/1999/xlink"
+              , Svg.Attributes.attributeType  "XML"
+              , Svg.Attributes.attributeName  "stroke-width"
+              , Svg.Attributes.from           "1"
+              , Svg.Attributes.to             (toString ( 1.5 * scale ) )
+              , Svg.Attributes.begin          "0s"
+              , Svg.Attributes.dur            duration
+              , Svg.Attributes.additive       "sum"
+              , Svg.Attributes.repeatCount    "indefinite"
+              ][]
+    , animate [ Svg.svgNamespace
+              , Svg.Attributes.class          "land-hover-class"
+              , attribute                     "xmlns:xlink" "http://www.w3.org/1999/xlink"
+              , Svg.Attributes.attributeType  "XML"
+              , Svg.Attributes.attributeName  "fill"
+              , Svg.Attributes.values         "#ff8; #f88; #f8f; #88f; #8ff; #8f8"
+              , Svg.Attributes.begin          "0s"
+              , Svg.Attributes.dur            duration
+              , Svg.Attributes.repeatCount    "indefinite"
+              ][]
+    ]
 
-             , animate [ Svg.svgNamespace
-                       , attribute                     "xmlns:xlink" "http://www.w3.org/1999/xlink"
-                       , Svg.Attributes.xlinkHref      id
-                       , Svg.Attributes.attributeType  "XML"
-                       , Svg.Attributes.attributeName  "stroke-width"
-                       , Svg.Attributes.from           "1"
-                       , Svg.Attributes.to             (toString ( 1.5 * scale ) )
-                       , Svg.Attributes.begin          "0s"
-                       , Svg.Attributes.dur            duration
-                       , Svg.Attributes.additive       "sum"
-                       , Svg.Attributes.repeatCount    "indefinite" ][]
-
-             , animate [ Svg.svgNamespace
-                       , attribute                     "xmlns:xlink" "http://www.w3.org/1999/xlink"
-                       , Svg.Attributes.xlinkHref      id
-                       , Svg.Attributes.attributeType  "XML"
-                       , Svg.Attributes.attributeName  "fill"
-                       , Svg.Attributes.values         "#ff8; #f88; #f8f; #88f; #8ff; #8f8"
-                       , Svg.Attributes.begin          "0s"
-                       , Svg.Attributes.dur            duration
-                       , Svg.Attributes.repeatCount    "indefinite" ][]
                {-
               , animateTransform [ Svg.svgNamespace
                                , attribute                     "xmlns:xlink" "http://www.w3.org/1999/xlink"
@@ -171,26 +212,43 @@ viewAnimations model =
                                 , Svg.Attributes.additive       "sum"
                                 , Svg.Attributes.repeatCount    "indefinite" ][]
                 -}
-             ]
 
--- SIGNAL
+filterInclude : Model -> String -> List ( String, Node )
+filterInclude model id =
+    List.filter (\e -> (fst e) == id ) model.lookup
 
-mouseMailbox : Signal.Mailbox ( Mouse )
-mouseMailbox = Signal.mailbox ( emptyMouse )
-mouseAddress = mouseMailbox.address
-mouseSignal  = mouseMailbox.signal
+filterExclude : Model -> String -> List ( String, Node )
+filterExclude model id =
+    List.filter (\e -> (fst e) /= id) model.lookup
 
--- UPDATE
+bringToFront : Model -> String -> Model
+bringToFront model id =
+    case ( filterInclude model id ) of
+      [ element ] ->
+          let rest = filterExclude model id
+          in
+            { model | lookup <- rest ++ [ element ] }
+      [] ->
+          model
 
 update : Mouse -> Model -> Model
 update mouse model =
     let x = Debug.watch "mouse" mouse
-        model2 = { model | mouse <- mouse }
+        model2 = { model | mouse <- mouse, renderings <- model.renderings + 1 }
     in
       case mouse of
         Over info ->
             if | info.id == model2.mouseOver -> model2
                | otherwise -> { model2 | mouseOver <- info.id, title <- info.id }
+                   {-
+                   let ignore = Map.Svg.bringToFront info.id
+                   in
+                     { model2 | mouseOver <- info.id, title <- info.id }
+                   let model3 = bringToFront model2 info.id
+                   in
+                     { model3 | mouseOver <- info.id, title <- info.id }
+                    -}
+
         Out info ->
             if | List.member info.id model2.animationsOut -> { model2 | mouseOver <- "", title <- "(the big sea)" }
                | otherwise -> { model2 | animationsOut  <- model2.animationsOut  ++ [ info.id ], mouseOver <- "" }
@@ -199,15 +257,66 @@ update mouse model =
 
 model : Signal Model
 model =
-    Signal.foldp update initialModel mouseSignal
+    Signal.foldp update default mouseSignal
 
-debugModelClasses model =
-    List.map (\ record -> { class = record.class, name = record.title } ) ( Dict.values model.regions )
+mouseOverChildren : List Svg.Svg
+mouseOverChildren =
+    [ set     [ Svg.svgNamespace
+              , attribute                     "xmlns:xlink" "http://www.w3.org/1999/xlink"
+              --, Svg.Attributes.xlinkHref      ref
+              , Svg.Attributes.attributeType  "XML"
+              , Svg.Attributes.attributeName  "stroke"
+              , Svg.Attributes.to             "#822"
+              , Svg.Attributes.begin          "0s"
+              , Svg.Attributes.dur            duration
+              , Svg.Attributes.repeatCount    "indefinite"
+              ][]
+    , animate [ Svg.svgNamespace
+              , attribute                     "xmlns:xlink" "http://www.w3.org/1999/xlink"
+              --, Svg.Attributes.xlinkHref      ref
+              , Svg.Attributes.attributeType  "XML"
+              , Svg.Attributes.attributeName  "stroke-width"
+              , Svg.Attributes.from           "1"
+              , Svg.Attributes.to             (toString ( 1.5 * scale ) )
+              , Svg.Attributes.begin          "0s"
+              , Svg.Attributes.dur            duration
+              , Svg.Attributes.additive       "sum"
+              , Svg.Attributes.repeatCount    "indefinite"
+              ][]
+    , animate [ Svg.svgNamespace
+              , attribute                     "xmlns:xlink" "http://www.w3.org/1999/xlink"
+              --, Svg.Attributes.xlinkHref      ref
+              , Svg.Attributes.attributeType  "XML"
+              , Svg.Attributes.attributeName  "fill"
+              , Svg.Attributes.values         "#ff8; #f88; #f8f; #88f; #8ff; #8f8"
+              , Svg.Attributes.begin          "0s"
+              , Svg.Attributes.dur            duration
+              , Svg.Attributes.repeatCount    "indefinite"
+              ][]
+    ]
 
 -- VIEW
 view model =
-    let y = Debug.watch "model.animationsOut" model.animationsOut
-        x = Debug.watch "model.mouseOver" model.mouseOver  -- Debug.watch "classes" (debugModelClasses model)
+
+    let
+        {-
+        viewPath : ( String, Node ) -> Svg.Svg
+        viewPath ( id, node ) =
+            if | id /= model.mouseOver -> node []
+               | otherwise ->
+                   let ref = "#" ++ model.mouseOver
+                       midpoint = negate ( centre model )
+                   in
+                     node mouseOverChildren
+         -}
+        nodes = svgNodes
+
+        sideEffectHover = hoverEnable "land-class" "land-hover-class"
+
+        y = Debug.watch "model.animationsOut" model.animationsOut
+
+        x = Debug.watch "model.mouseOver" model.mouseOver
+
     in
       flow down [ -- show model,
                  toElement 1000 1000 (
@@ -216,28 +325,30 @@ view model =
                                                                    , ( "visiblity", "visible" )
                                                                    , ( "font-size", "24px" ) ]
                                            ]
-                                       [ p [] [ text ( model.title ) ]
-                                       , div []
-                                                 [
-                                                  svg [ Svg.svgNamespace
+                                       [ p [] [ text ( model.title )
+                                              , text ( toString model.renderings )
+                                              ]
+                                       , div [] [ svg [ Svg.svgNamespace
+                                                      , Svg.Attributes.id mapId
                                                       , name "oink"
                                                       , attribute "width" "1000px"
                                                       , attribute "height" "1000px"
                                                       , class "world-map"
-                                                      -- , attribute "xmlns" "http://www.w3.org/2000/svg"
                                                       , attribute "xmlns:xlink" "http://www.w3.org/1999/xlink"
                                                       ]
                                                   [ defs [ Svg.svgNamespace
                                                          , attribute "xmlns:xlink" "http://www.w3.org/1999/xlink"
-                                                         ] ( viewAnimations model )
+                                                         ]
+                                                    [ hoverAnimations
+                                                    ]
+
                                                   , g [ Svg.svgNamespace
-                                                      , Svg.Attributes.id "group-map"
                                                       , attribute "xmlns:xlink" "http://www.w3.org/1999/xlink"
-                                                      ] svgPaths
+                                                      ] ( List.map ( \ ( id, path ) -> path ) model.lookup )
                                                   ]
-                                                 ]
+                                                ]
                                        ]
-                                      )
+                                     )
                 ]
 
 main : Signal Element
