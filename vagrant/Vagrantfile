@@ -1,0 +1,28 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+# vagrant box add scientific6 http://lyte.id.au/vagrant/sl6-64-lyte.box
+
+Vagrant.configure(2) do |config|
+  config.vm.box = "scientific6"
+  config.vm.network "forwarded_port", guest: 8000, host: 8000
+  config.vm.synced_folder "/local/jonathan/projects/elm/risk/game", "/home/vagrant/game"
+   config.vm.provider "virtualbox" do |vb|
+     vb.memory = "1024"
+     vb.cpus = 2
+   end
+  config.vm.provision "shell", inline: <<-SHELL
+yum -y install emacs ncurses-devel ncurses
+wget http://sherkin.justhub.org/el6/RPMS/x86_64/justhub-release-2.0-4.0.el6.x86_64.rpm
+rpm -ivh justhub-release-2.0-4.0.el6.x86_64.rpm
+wget http://download.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm
+rpm -ivh epel-release-6-8.noarch.rpm
+yum -y install nodejs
+yum -y install haskell
+echo "upgraded, now elm" vagrant
+su -c "cabal update" vagrant
+su -c "cabal install cabal-install" vagrant
+su -c "cabal install -j elm-compiler-0.15 elm-package-0.5 elm-make-0.1.2" vagrant
+su -c  "cabal install -j elm-repl-0.4.1 elm-reactor-0.3.1" vagrant
+sed -i 's/HOME\/bin/HOME\/bin:\$HOME\/.cabal\/bin/g' /home/vagrant/.bash_profile
+   SHELL
+end
