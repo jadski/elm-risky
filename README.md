@@ -8,24 +8,26 @@ Prepare a vagrant machine
 You'll need this software installed locally:
 
  *virtualbox*
+ 
  *vagrant*
 
 Create a new box named scientific6
 
-    vagrant box add scientific6 http://lyte.id.au/vagrant/sl6-64-lyte.box
+    :~ vagrant box add scientific6 http://lyte.id.au/vagrant/sl6-64-lyte.box
 
-Provision your virtual machine
-------------------------------
+Provision your virtual machine, from repo top folder
 
-    cd vagrant
-    vagrant up
+    :~ cd vagrant
+    :~ vagrant up
 
-**Run elm reactor**
+Run elm reactor
+---------------
 
-    vagrant ssh
-    cd ~/game
-    elm-reactor
+    :~ vagrant ssh
+    :~ cd ~/game
+    :~ elm-reactor
 
-**Play**
+Play
+----
 
 Navigate to http://127.0.0.1:8000/
