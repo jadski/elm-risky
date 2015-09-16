@@ -2,10 +2,13 @@
 # vi: set ft=ruby :
 # vagrant box add scientific6 http://lyte.id.au/vagrant/sl6-64-lyte.box
 
+repopath = File.expand_path( "..", File.dirname( __FILE__ ) )
+gamepath = File.expand_path( repopath, "game" )
+
 Vagrant.configure(2) do |config|
   config.vm.box = "scientific6"
   config.vm.network "forwarded_port", guest: 8000, host: 8000
-  config.vm.synced_folder "/local/jonathan/projects/elm/risk/game", "/home/vagrant/game"
+  config.vm.synced_folder gamepath, "/home/vagrant/game"
    config.vm.provider "virtualbox" do |vb|
      vb.memory = "1024"
      vb.cpus = 2
@@ -18,11 +21,13 @@ wget http://download.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch
 rpm -ivh epel-release-6-8.noarch.rpm
 yum -y install nodejs
 yum -y install haskell
-echo "upgraded, now elm" vagrant
+echo "\n upgraded, bypassing cabal hell (it's worth the wait)\n" vagrant
 su -c "cabal update" vagrant
 su -c "cabal install cabal-install" vagrant
+PATH=~/.cabal/bin/:$PATH
+echo "\n hell bypassed, installing elm (compliation may take a while)\n" vagrant
 su -c "cabal install -j elm-compiler-0.15 elm-package-0.5 elm-make-0.1.2" vagrant
-su -c  "cabal install -j elm-repl-0.4.1 elm-reactor-0.3.1" vagrant
+su -c "cabal install -j elm-repl-0.4.1 elm-reactor-0.3.1" vagrant
 sed -i 's/HOME\/bin/HOME\/bin:\$HOME\/.cabal\/bin/g' /home/vagrant/.bash_profile
    SHELL
 end
