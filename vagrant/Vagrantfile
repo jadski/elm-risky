@@ -18,7 +18,7 @@ Vagrant.configure(2) do |config|
 
 function download_requirements () {
 yum -y install figlet
-wget -nw http://download.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm http://downloads.haskell.org/~ghc/7.10.2/ghc-7.10.2-x86_64-unknown-linux-centos66.tar.bz2 https://www.haskell.org/cabal/release/cabal-install-1.22.6.0/cabal-install-1.22.6.0.tar.gz https://raw.githubusercontent.com/elm-lang/elm-platform/master/installers/BuildFromSource.hs
+wget -nv http://download.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm http://downloads.haskell.org/~ghc/7.10.2/ghc-7.10.2-x86_64-unknown-linux-centos66.tar.bz2 https://www.haskell.org/cabal/release/cabal-install-1.22.6.0/cabal-install-1.22.6.0.tar.gz https://raw.githubusercontent.com/elm-lang/elm-platform/master/installers/BuildFromSource.hs
 if [ $? -eq 0 ];then
 figlet "Requirements downloaded"
 echo $_
