@@ -78,10 +78,10 @@ fi
 }
 
 download_requirements
-# install_packages
-# install_haskell
-# install_cabal
-# install_elm
+install_packages
+install_haskell
+install_cabal
+install_elm
 
  SHELL
 end
