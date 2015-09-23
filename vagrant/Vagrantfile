@@ -1,33 +1,125 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
-# vagrant box add scientific6 http://lyte.id.au/vagrant/sl6-64-lyte.box
+
+#vagrant box add centos66 https://developer.nrel.gov/downloads/vagrant-boxes/CentOS-6.6-x86_64-v20150426.box
 
 repopath = File.expand_path( "..", File.dirname( __FILE__ ) )
 gamepath = File.expand_path( repopath, "game" )
 
 Vagrant.configure(2) do |config|
-  config.vm.box = "scientific6"
+  config.vm.box = "centos66"
   config.vm.network "forwarded_port", guest: 8000, host: 8000
-  config.vm.synced_folder gamepath, "/home/vagrant/game"
+  config.vm.synced_folder gamepath, "/home/vagrant/game", mount_options: ["dmode=777,fmode=777"]
    config.vm.provider "virtualbox" do |vb|
      vb.memory = "1024"
      vb.cpus = 2
    end
   config.vm.provision "shell", inline: <<-SHELL
-yum -y install emacs ncurses-devel ncurses
-wget http://sherkin.justhub.org/el6/RPMS/x86_64/justhub-release-2.0-4.0.el6.x86_64.rpm
-rpm -ivh justhub-release-2.0-4.0.el6.x86_64.rpm
+
+function install_packages () {
 wget http://download.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm
 rpm -ivh epel-release-6-8.noarch.rpm
-yum -y install nodejs
-yum -y install haskell
-echo "\n upgraded, bypassing cabal hell (it's worth the wait)\n" vagrant
-su -c "cabal update" vagrant
-su -c "cabal install cabal-install" vagrant
-PATH=~/.cabal/bin/:$PATH
-echo "\n hell bypassed, installing elm (compliation may take a while)\n" vagrant
-su -c "cabal install -j elm-compiler-0.15 elm-package-0.5 elm-make-0.1.2" vagrant
-su -c "cabal install -j elm-repl-0.4.1 elm-reactor-0.3.1" vagrant
-sed -i 's/HOME\/bin/HOME\/bin:\$HOME\/.cabal\/bin/g' /home/vagrant/.bash_profile
-   SHELL
+yum update
+yum -y install emacs ncurses-devel ncurses zlib-devel git nodejs gcc npm glibc gmp-devel
+sudo service iptables stop
+chkconfig iptables off
+cat << EOC
+ ______            _
+(_____ \          | |
+ _____) )___  ____| |  _ ____  ____  ____  ___
+|  ____/ _  |/ ___) | / ) _  |/ _  |/ _  )/___)
+| |   ( ( | ( (___| |< ( ( | ( ( | ( (/ /|___ |
+|_|    \_||_|\____)_| \_)_||_|\_|| |\____|___/
+                             (_____|
+ _____                      _ _          _
+(_____)           _        | | |        | |
+   _   ____   ___| |_  ____| | | ____ _ | |
+  | | |  _ \ /___)  _)/ _  | | |/ _  ) || |
+ _| |_| | | |___ | |_( ( | | | ( (/ ( (_| |
+(_____)_| |_(___/ \___)_||_|_|_|\____)____|
+EOC
+}
+
+function download_requirements () {
+wget http://downloads.haskell.org/~ghc/7.10.2/ghc-7.10.2-x86_64-unknown-linux-centos66.tar.bz2
+wget https://www.haskell.org/cabal/release/cabal-install-1.22.6.0/cabal-install-1.22.6.0.tar.gz
+curl https://raw.githubusercontent.com/elm-lang/elm-platform/master/installers/BuildFromSource.hs > BuildFromSource.hs
+cat << EOC
+ ______                    _
+(_____ \                  (_)                               _
+ _____) )_____  ____ _   _ _  ____ _____ ____  _____ ____ _| |_  ___
+|  __  /| ___ |/ _  | | | | |/ ___) ___ |    \| ___ |  _ (_   _)/___)
+| |  \ \| ____| |_| | |_| | | |   | ____| | | | ____| | | || |_|___ |
+|_|   |_|_____)\__  |____/|_|_|   |_____)_|_|_|_____)_| |_| \__|___/
+                  |_|
+     _                   _                 _           _
+    | |                 | |               | |         | |
+  __| | ___  _ _ _ ____ | | ___  _____  __| |_____  __| |
+ / _  |/ _ \| | | |  _ \| |/ _ \(____ |/ _  | ___ |/ _  |
+( (_| | |_| | | | | | | | | |_| / ___ ( (_| | ____( (_| |
+ \____|\___/ \___/|_| |_|\_)___/\_____|\____|_____)\____|
+
+EOC
+}
+
+function install_haskell () {
+tar xvjf ghc-7.10.2-x86_64-unknown-linux-centos66.tar.bz2
+cd /home/vagrant/ghc-7.10.2
+./configure
+make install
+cd /home/vagrant/
+cat << EOC
+ _     _            _           _ _
+(_)   (_)          | |         | | |
+ _______ _____  ___| |  _ _____| | |
+|  ___  (____ |/___) |_/ ) ___ | | |
+| |   | / ___ |___ |  _ (| ____| | |
+|_|   |_\_____(___/|_| \_)_____)\_)_)
+
+ _                        _ _            _
+| |             _        | | |          | |
+| |____   ___ _| |_ _____| | | _____  __| |
+| |  _ \ /___|_   _|____ | | || ___ |/ _  |
+| | | | |___ | | |_/ ___ | | || ____( (_| |
+|_|_| |_(___/   \__)_____|\_)_)_____)\____|
+EOC
+}
+
+function install_cabal () {
+sudo su - vagrant -c "tar xvzf cabal-install-1.22.6.0.tar.gz "
+sudo su - vagrant -c "cd /home/vagrant/cabal-install-1.22.6.0 && /home/vagrant/cabal-install-1.22.6.0/bootstrap.sh"
+sed -i 's_HOME/bin_HOME/bin:$HOME/.cabal/bin_g' /home/vagrant/.bash_profile
+sudo su - vagrant -c "source /home/vagrant/.bash_profile && cabal update && cabal install cabal-install"
+cat << EOC
+ _______       _           _     _                        _ _            _
+(_______)     | |         | |   | |             _        | | |          | |
+ _       _____| |__  _____| |   | |____   ___ _| |_ _____| | | _____  __| |
+| |     (____ |  _ \(____ | |   | |  _ \ /___|_   _|____ | | || ___ |/ _  |
+| |_____/ ___ | |_) ) ___ | |   | | | | |___ | | |_/ ___ | | || ____( (_| |
+ \______)_____|____/\_____|\_)  |_|_| |_(___/   \__)_____|\_)_)_____)\____|
+EOC
+}
+
+function install_elm () {
+sudo su - vagrant -c "source /home/vagrant/.bash_profile && runhaskell BuildFromSource.hs 0.15.1"
+sed -i 's_cabal/bin_cabal/bin:/home/vagrant/Elm-Platform/0.15.1/.cabal-sandbox/bin_g' /home/vagrant/.bash_profile
+cat << EOC
+
+ _______ _                  _    _ _
+(_______) |                | |  | | |
+ _____  | | ____  _____  __| |  | | |
+|  ___) | ||    \| ___ |/ _  |  |_|_|
+| |_____| || | | | ____( (_| |   _ _
+|_______)\_)_|_|_|_____)\____|  |_|_|
+
+EOC
+}
+
+install_packages
+download_requirements
+install_haskell
+install_cabal
+install_elm
+
+ SHELL
 end
