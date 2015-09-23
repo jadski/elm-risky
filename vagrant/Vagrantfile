@@ -68,34 +68,9 @@ cat << EOC
 EOC
 }
 
-function download_requirements () {
-wget http://downloads.haskell.org/~ghc/7.10.2/ghc-7.10.2-x86_64-unknown-linux-centos66.tar.bz2
-wget https://www.haskell.org/cabal/release/cabal-install-1.22.6.0/cabal-install-1.22.6.0.tar.gz
-curl https://raw.githubusercontent.com/elm-lang/elm-platform/master/installers/BuildFromSource.hs > BuildFromSource.hs
-cat << EOC
- ______                    _
-(_____ \                  (_)                               _
- _____) )_____  ____ _   _ _  ____ _____ ____  _____ ____ _| |_  ___
-|  __  /| ___ |/ _  | | | | |/ ___) ___ |    \| ___ |  _ (_   _)/___)
-| |  \ \| ____| |_| | |_| | | |   | ____| | | | ____| | | || |_|___ |
-|_|   |_|_____)\__  |____/|_|_|   |_____)_|_|_|_____)_| |_| \__|___/
-                  |_|
-     _                   _                 _           _
-    | |                 | |               | |         | |
-  __| | ___  _ _ _ ____ | | ___  _____  __| |_____  __| |
- / _  |/ _ \| | | |  _ \| |/ _ \(____ |/ _  | ___ |/ _  |
-( (_| | |_| | | | | | | | | |_| / ___ ( (_| | ____( (_| |
- \____|\___/ \___/|_| |_|\_)___/\_____|\____|_____)\____|
-
-EOC
-}
-
 function install_haskell () {
-tar xvjf ghc-7.10.2-x86_64-unknown-linux-centos66.tar.bz2
-cd /home/vagrant/ghc-7.10.2
-./configure
-make install
-cd /home/vagrant/
+tar xjf ghc-7.10.2-x86_64-unknown-linux-centos66.tar.bz2 && cd /home/vagrant/ghc-7.10.2 && ./configure && make install &&cd /home/vagrant/
+if [ $? -eq 0 ];then
 cat << EOC
  _     _            _           _ _
 (_)   (_)          | |         | | |
@@ -111,13 +86,15 @@ cat << EOC
 | | | | |___ | | |_/ ___ | | || ____( (_| |
 |_|_| |_(___/   \__)_____|\_)_)_____)\____|
 EOC
+else
+echo "Haskell 7.10.2 could not be installed"
+exit 1
+fi
 }
 
 function install_cabal () {
-sudo su - vagrant -c "tar xvzf cabal-install-1.22.6.0.tar.gz "
-sudo su - vagrant -c "cd /home/vagrant/cabal-install-1.22.6.0 && /home/vagrant/cabal-install-1.22.6.0/bootstrap.sh"
-sed -i 's_HOME/bin_HOME/bin:$HOME/.cabal/bin_g' /home/vagrant/.bash_profile
-sudo su - vagrant -c "source /home/vagrant/.bash_profile && cabal update && cabal install cabal-install"
+sudo su - vagrant -c "tar xzf cabal-install-1.22.6.0.tar.gz && cd /home/vagrant/cabal-install-1.22.6.0 && /home/vagrant/cabal-install-1.22.6.0/bootstrap.sh" && sed -i 's_HOME/bin_HOME/bin:$HOME/.cabal/bin_g' /home/vagrant/.bash_profile && sudo su - vagrant -c "source /home/vagrant/.bash_profile && cabal update && cabal install cabal-install"
+if [ $? -eq 0 ];then
 cat << EOC
  _______       _           _     _                        _ _            _
 (_______)     | |         | |   | |             _        | | |          | |
@@ -126,11 +103,15 @@ cat << EOC
 | |_____/ ___ | |_) ) ___ | |   | | | | |___ | | |_/ ___ | | || ____( (_| |
  \______)_____|____/\_____|\_)  |_|_| |_(___/   \__)_____|\_)_)_____)\____|
 EOC
+else
+echo "Cabal 1.22.6 could not be installed"
+exit 1
+fi
 }
 
 function install_elm () {
-sudo su - vagrant -c "source /home/vagrant/.bash_profile && runhaskell BuildFromSource.hs 0.15.1"
-sed -i 's_cabal/bin_cabal/bin:/home/vagrant/Elm-Platform/0.15.1/.cabal-sandbox/bin_g' /home/vagrant/.bash_profile
+sudo su - vagrant -c "source /home/vagrant/.bash_profile && runhaskell BuildFromSource.hs 0.15.1" && sed -i 's_cabal/bin_cabal/bin:/home/vagrant/Elm-Platform/0.15.1/.cabal-sandbox/bin_g' /home/vagrant/.bash_profile
+if [ $? -eq 0 ];then
 cat << EOC
 
  _______ _                  _    _ _
@@ -141,10 +122,14 @@ cat << EOC
 |_______)\_)_|_|_|_____)\____|  |_|_|
 
 EOC
+else
+echo "Elm 0.15.1 could not be installed"
+exit 1
+fi
 }
 
-install_packages
 download_requirements
+install_packages
 install_haskell
 install_cabal
 install_elm
