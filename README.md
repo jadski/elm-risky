@@ -11,9 +11,9 @@ You'll need this software installed locally:
  
  *vagrant*
 
-Create a new box named scientific6
+Create a new box named centos66
 
-    :~ vagrant box add scientific6 http://lyte.id.au/vagrant/sl6-64-lyte.box
+    :~ vagrant box add centos66 https://developer.nrel.gov/downloads/vagrant-boxes/CentOS-6.6-x86_64-v20150426.box
 
 Provision your virtual machine, from repo top folder
 
@@ -24,7 +24,7 @@ Run elm reactor
 ---------------
 
     :~ vagrant ssh
-    :~ cd ~/game
+    :~ cd ~/game/game
     :~ elm-reactor
 
 Play
