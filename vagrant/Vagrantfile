@@ -1,33 +1,87 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
-# vagrant box add scientific6 http://lyte.id.au/vagrant/sl6-64-lyte.box
+
+#vagrant box add centos66 https://developer.nrel.gov/downloads/vagrant-boxes/CentOS-6.6-x86_64-v20150426.box
 
 repopath = File.expand_path( "..", File.dirname( __FILE__ ) )
 gamepath = File.expand_path( repopath, "game" )
 
 Vagrant.configure(2) do |config|
-  config.vm.box = "scientific6"
+  config.vm.box = "centos66"
   config.vm.network "forwarded_port", guest: 8000, host: 8000
-  config.vm.synced_folder gamepath, "/home/vagrant/game"
+  config.vm.synced_folder gamepath, "/home/vagrant/game", mount_options: ["dmode=777,fmode=777"]
    config.vm.provider "virtualbox" do |vb|
      vb.memory = "1024"
      vb.cpus = 2
    end
   config.vm.provision "shell", inline: <<-SHELL
-yum -y install emacs ncurses-devel ncurses
-wget http://sherkin.justhub.org/el6/RPMS/x86_64/justhub-release-2.0-4.0.el6.x86_64.rpm
-rpm -ivh justhub-release-2.0-4.0.el6.x86_64.rpm
-wget http://download.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm
+
+function download_requirements () {
+yum -y install figlet
+wget -nv http://download.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm http://downloads.haskell.org/~ghc/7.10.2/ghc-7.10.2-x86_64-unknown-linux-centos66.tar.bz2 https://www.haskell.org/cabal/release/cabal-install-1.22.6.0/cabal-install-1.22.6.0.tar.gz https://raw.githubusercontent.com/elm-lang/elm-platform/master/installers/BuildFromSource.hs
+if [ $? -eq 0 ];then
+figlet "Requirements downloaded"
+echo $_
+else
+figlet "Could not download files, please verify you have internet conection"
+echo $_
+exit 1
+fi
+}
+
+function install_packages () {
 rpm -ivh epel-release-6-8.noarch.rpm
-yum -y install nodejs
-yum -y install haskell
-echo "\n upgraded, bypassing cabal hell (it's worth the wait)\n" vagrant
-su -c "cabal update" vagrant
-su -c "cabal install cabal-install" vagrant
-PATH=~/.cabal/bin/:$PATH
-echo "\n hell bypassed, installing elm (compliation may take a while)\n" vagrant
-su -c "cabal install -j elm-compiler-0.15 elm-package-0.5 elm-make-0.1.2" vagrant
-su -c "cabal install -j elm-repl-0.4.1 elm-reactor-0.3.1" vagrant
-sed -i 's/HOME\/bin/HOME\/bin:\$HOME\/.cabal\/bin/g' /home/vagrant/.bash_profile
-   SHELL
+echo "RPM epel released $?"
+yum update
+echo "Yum update $?"
+yum -y install emacs ncurses-devel ncurses zlib-devel git nodejs gcc npm glibc gmp-devel figlet
+echo "Yum install $?"
+sudo service iptables stop
+echo "stop iptables $?"
+chkconfig iptables off
+echo "disable iptables $?"
+figlet "Packages installed"
+echo $_
+}
+
+function install_haskell () {
+tar xjf ghc-7.10.2-x86_64-unknown-linux-centos66.tar.bz2 && cd /home/vagrant/ghc-7.10.2 && ./configure && make install &&cd /home/vagrant/
+if [ $? -eq 0 ];then
+figlet "Haskell installed"
+echo $_
+else
+echo "Haskell 7.10.2 could not be installed"
+exit 1
+fi
+}
+
+function install_cabal () {
+sudo su - vagrant -c "tar xzf cabal-install-1.22.6.0.tar.gz && cd /home/vagrant/cabal-install-1.22.6.0 && /home/vagrant/cabal-install-1.22.6.0/bootstrap.sh" && sed -i 's_HOME/bin_HOME/bin:$HOME/.cabal/bin_g' /home/vagrant/.bash_profile && sudo su - vagrant -c "source /home/vagrant/.bash_profile && cabal update && cabal install cabal-install"
+if [ $? -eq 0 ];then
+figlet "Cabal installed"
+echo $_
+else
+echo "Cabal 1.22.6 could not be installed"
+exit 1
+fi
+}
+
+function install_elm () {
+sudo su - vagrant -c "source /home/vagrant/.bash_profile && runhaskell BuildFromSource.hs 0.15.1" && sed -i 's_cabal/bin_cabal/bin:/home/vagrant/Elm-Platform/0.15.1/.cabal-sandbox/bin_g' /home/vagrant/.bash_profile
+if [ $? -eq 0 ];then
+figlet 'Elmed !!'
+echo $_
+else
+echo "Elm 0.15.1 could not be installed"
+exit 1
+fi
+}
+
+download_requirements
+install_packages
+install_haskell
+install_cabal
+install_elm
+
+ SHELL
 end
