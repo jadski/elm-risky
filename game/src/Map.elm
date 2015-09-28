@@ -88,8 +88,7 @@ mouseSignal  = mouseMailbox.signal
 
 node : Map.World.Record -> Node
 node record =
-    path [ Svg.svgNamespace
-         , Svg.Attributes.id     record.id
+    path [ Svg.Attributes.id     record.id
          , Svg.Attributes.title  record.title
          , Svg.Attributes.class  "land-class"
          , Svg.Attributes.d      record.d
@@ -142,14 +141,12 @@ string ords
     = ( toString ( fst ords ) ) ++ "," ++ ( toString ( snd ords ) )
 
 hoverAnimations =
-    g [ Svg.svgNamespace
-      , attribute                     "xmlns:xlink" "http://www.w3.org/1999/xlink"
+    g [ attribute                     "xmlns:xlink" "http://www.w3.org/1999/xlink"
       , Svg.Attributes.id             "land-hover-animation-id"
       , Svg.Attributes.xlinkHref      ""
       , Svg.Attributes.attributeType  "XML"
       ]
-    [ set     [ Svg.svgNamespace
-              , Svg.Attributes.class          "land-hover-class"
+    [ set     [ Svg.Attributes.class          "land-hover-class"
               , attribute                     "xmlns:xlink" "http://www.w3.org/1999/xlink"
               , Svg.Attributes.attributeType  "XML"
               , Svg.Attributes.attributeName  "stroke"
@@ -158,8 +155,7 @@ hoverAnimations =
               , Svg.Attributes.dur            duration
               , Svg.Attributes.repeatCount    "indefinite"
               ][]
-    , animate [ Svg.svgNamespace
-              , Svg.Attributes.class          "land-hover-class"
+    , animate [ Svg.Attributes.class          "land-hover-class"
               , attribute                     "xmlns:xlink" "http://www.w3.org/1999/xlink"
               , Svg.Attributes.attributeType  "XML"
               , Svg.Attributes.attributeName  "stroke-width"
@@ -170,8 +166,7 @@ hoverAnimations =
               , Svg.Attributes.additive       "sum"
               , Svg.Attributes.repeatCount    "indefinite"
               ][]
-    , animate [ Svg.svgNamespace
-              , Svg.Attributes.class          "land-hover-class"
+    , animate [ Svg.Attributes.class          "land-hover-class"
               , attribute                     "xmlns:xlink" "http://www.w3.org/1999/xlink"
               , Svg.Attributes.attributeType  "XML"
               , Svg.Attributes.attributeName  "fill"
@@ -183,8 +178,7 @@ hoverAnimations =
     ]
 
                {-
-              , animateTransform [ Svg.svgNamespace
-                               , attribute                     "xmlns:xlink" "http://www.w3.org/1999/xlink"
+              , animateTransform [ attribute                     "xmlns:xlink" "http://www.w3.org/1999/xlink"
                                , Svg.Attributes.xlinkHref      id
                                , Svg.Attributes.attributeName  "transform"
                                , Svg.Attributes.attributeType  "XML"
@@ -197,8 +191,7 @@ hoverAnimations =
                                , Svg.Attributes.dur            duration
                                , Svg.Attributes.additive       "sum"
                                , Svg.Attributes.repeatCount    "indefinite" ][]
-             , animateTransform [ Svg.svgNamespace
-                               , attribute                     "xmlns:xlink" "http://www.w3.org/1999/xlink"
+             , animateTransform [ attribute                     "xmlns:xlink" "http://www.w3.org/1999/xlink"
                                , Svg.Attributes.xlinkHref      id
                                , Svg.Attributes.attributeName  "transform"
                                , Svg.Attributes.attributeType  "XML"
@@ -261,8 +254,7 @@ model =
 
 mouseOverChildren : List Svg.Svg
 mouseOverChildren =
-    [ set     [ Svg.svgNamespace
-              , attribute                     "xmlns:xlink" "http://www.w3.org/1999/xlink"
+    [ set     [ attribute                     "xmlns:xlink" "http://www.w3.org/1999/xlink"
               --, Svg.Attributes.xlinkHref      ref
               , Svg.Attributes.attributeType  "XML"
               , Svg.Attributes.attributeName  "stroke"
@@ -271,8 +263,7 @@ mouseOverChildren =
               , Svg.Attributes.dur            duration
               , Svg.Attributes.repeatCount    "indefinite"
               ][]
-    , animate [ Svg.svgNamespace
-              , attribute                     "xmlns:xlink" "http://www.w3.org/1999/xlink"
+    , animate [ attribute                     "xmlns:xlink" "http://www.w3.org/1999/xlink"
               --, Svg.Attributes.xlinkHref      ref
               , Svg.Attributes.attributeType  "XML"
               , Svg.Attributes.attributeName  "stroke-width"
@@ -283,8 +274,7 @@ mouseOverChildren =
               , Svg.Attributes.additive       "sum"
               , Svg.Attributes.repeatCount    "indefinite"
               ][]
-    , animate [ Svg.svgNamespace
-              , attribute                     "xmlns:xlink" "http://www.w3.org/1999/xlink"
+    , animate [ attribute                     "xmlns:xlink" "http://www.w3.org/1999/xlink"
               --, Svg.Attributes.xlinkHref      ref
               , Svg.Attributes.attributeType  "XML"
               , Svg.Attributes.attributeName  "fill"
@@ -328,22 +318,19 @@ view model =
                                        [ p [] [ text ( model.title )
                                               , text ( toString model.renderings )
                                               ]
-                                       , div [] [ svg [ Svg.svgNamespace
-                                                      , Svg.Attributes.id mapId
+                                       , div [] [ svg [ Svg.Attributes.id mapId
                                                       , name "oink"
                                                       , attribute "width" "1000px"
                                                       , attribute "height" "1000px"
                                                       , class "world-map"
                                                       , attribute "xmlns:xlink" "http://www.w3.org/1999/xlink"
                                                       ]
-                                                  [ defs [ Svg.svgNamespace
-                                                         , attribute "xmlns:xlink" "http://www.w3.org/1999/xlink"
+                                                  [ defs [ attribute "xmlns:xlink" "http://www.w3.org/1999/xlink"
                                                          ]
                                                     [ hoverAnimations
                                                     ]
 
-                                                  , g [ Svg.svgNamespace
-                                                      , attribute "xmlns:xlink" "http://www.w3.org/1999/xlink"
+                                                  , g [ attribute "xmlns:xlink" "http://www.w3.org/1999/xlink"
                                                       ] ( List.map ( \ ( id, path ) -> path ) model.lookup )
                                                   ]
                                                 ]
